@@ -1,0 +1,68 @@
+#!/usr/bin/env perl
+use 5.014;      # includes strict
+use warnings;
+use autodie;
+use Getopt::Long;
+use Pod::Usage;
+
+# https://perlancar.wordpress.com/2016/12/01/getopt-modules-01-getoptlong/
+Getopt::Long::Configure("bundling", "no_ignore_case", "permute", "no_getopt_compat");
+
+# Command line options
+GetOptions(
+    "h|?|help" => \( my $help ),
+) or pod2usage(1);
+
+# Help
+pod2usage( -exitval => 0, -verbose => 2, -noperldoc => 1 ) if $help;
+
+my %hosts = get_prev_scan;
+
+if (@ARGV) {
+
+    # Find open ports
+    for my $host (@ARGV) {
+
+        $hosts{$host}{tcp} = scan_tcp_ports($host);
+    }
+
+    store_current_scan(%hosts);
+} else {
+
+    # Compare stored open ports with currently open ports
+    my %hosts_current;
+    for my $host (keys %hosts) {
+        $hosts_current{$host}{tcp} = scan_tcp_ports($host);
+    }
+
+    compare_scans(%hosts, %hosts_current);
+}
+
+
+__END__
+
+=head1 NAME
+
+monport - monitor network ports
+
+=head1 SYNOPSIS
+
+monport [ options ] [ hostname ]...
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-h, -?, --help>
+
+Brief help message.
+
+=back
+
+=head1 DESCRIPTION
+
+When list of hostnames is supplied the hostnames are scanned for open ports. The list of currently open ports is stored for each host.
+
+If no hostnames are supplied the stored (i.e. previously scanned) hosts are (re-)scanned for open ports. If the list of currently open ports differ from the stored list for the given host an alert will be generated.
+
+=cut
